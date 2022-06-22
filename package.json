@@ -1,0 +1,23 @@
+{
+  "name": "binance-tradebot-supertrend",
+  "version": "1.0.0",
+  "main": "src/index",
+  "repository": "git@github.com:rotepfau/binance-tradebot-supertrend.git",
+  "author": "rotepfau",
+  "license": "MIT",
+  "private": false,
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "tsc --build --clean",
+    "start": "tsc --build && node ."
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "typescript": "^4.7.4"
+  },
+  "dependencies": {
+    "@debut/indicators": "^1.3.6",
+    "binance-api-node": "^0.11.40",
+    "dotenv": "^16.0.1"
+  }
+}
