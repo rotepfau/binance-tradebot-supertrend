@@ -20,8 +20,13 @@ client.futuresLeverage({
 	});
 	for (let i = pastCandles.length - E.PERIOD; i < pastCandles.length; i++) {
 		const { high, low, close } = pastCandles[i];
-		supertrend.nextValue(Number(high), Number(low), Number(close));
+		const st = supertrend.nextValue(
+			Number(high),
+			Number(low),
+			Number(close)
+		);
 		ema.nextValue(Number(close));
+		if (i === pastCandles.length - 1) prevSupertrendDir = st.direction;
 	}
 	return console.info("past candles set");
 })();
