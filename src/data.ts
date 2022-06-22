@@ -7,12 +7,12 @@ const API = {
 };
 
 const ST = {
-	PERIOD: 2,
+	PERIOD: 10,
 	MULTIPLIER: 3,
 };
 
 const E = {
-	PERIOD: 3,
+	PERIOD: 200,
 };
 
 const PROP = {

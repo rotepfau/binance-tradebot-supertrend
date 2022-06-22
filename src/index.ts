@@ -21,13 +21,17 @@ client.ws.futuresCandles(PROP.pair, PROP.interval, (candle) => {
 	}
 });
 
-// run every candle
 let bought: boolean = false;
 let supertrendDir: number | undefined = undefined;
+// run every candle
 const Main = (h: number, l: number, c: number) => {
 	const st = supertrend.nextValue(h, l, c);
 	const e = ema.nextValue(c);
 	supertrendDir = st ? st.direction : undefined;
+	console.info("bought", bought);
+	console.info("supertrend", st);
+	console.info("ema", e);
+	console.info("close", c);
 	if (bought === false && c > e && supertrendDir === -1) {
 		console.info("Buyin");
 		placeOrder("BUY");
@@ -37,8 +41,6 @@ const Main = (h: number, l: number, c: number) => {
 		placeOrder("SELL");
 	}
 };
-
-getBalance().then(console.log);
 
 async function placeOrder(position: OrderSide_LT) {
 	if ((await getBalance()) >= 0.008 || bought) {
