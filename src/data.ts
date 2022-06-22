@@ -1,3 +1,4 @@
+import { CandleChartInterval_LT } from "binance-api-node";
 import * as dotenv from "dotenv";
 dotenv.config();
 
@@ -15,11 +16,20 @@ const E = {
 	PERIOD: 200,
 };
 
-const PROP = {
+type PROPTYPE = {
+	symbol: string;
+	leverage: number;
+	pair: string;
+	interval: CandleChartInterval_LT;
+	balance: number;
+};
+
+const PROP: PROPTYPE = {
 	symbol: "USDT",
 	leverage: 1,
 	pair: "BTCUSDT",
 	interval: "1m",
+	balance: 0.008, //btc converted
 };
 
 export { API, ST, E, PROP };
