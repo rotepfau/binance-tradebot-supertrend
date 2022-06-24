@@ -58,66 +58,66 @@ const Main = (h: number, l: number, c: number) => {
 	console.info("supertrend", st);
 	console.info("ema", e);
 	console.info("close", c);
-	if (position === "closed") {
-		if (
-			direction !== "long" &&
-			c > e &&
-			prevSupertrendDir === 1 &&
-			supertrendDir === -1
-		) {
-			console.info("Open Long");
-			placeOrder("BUY");
-			position = "opened";
-			direction = "long";
-		}
-		if (
-			direction !== "short" &&
-			c < e &&
-			prevSupertrendDir === -1 &&
-			supertrendDir === 1
-		) {
-			console.info("Open Short");
-			placeOrder("SELL");
-			position = "opened";
-			direction = "short";
-		}
-	}
-
-	if (position === "opened") {
-		if (
-			direction === "long" &&
-			c < e &&
-			prevSupertrendDir === -1 &&
-			supertrendDir === 1
-		) {
-			console.info("Stoploss Long");
-			placeOrder("SELL");
-			position = "closed";
-			direction = "";
-		}
-		if (
-			direction === "short" &&
-			c > e &&
-			prevSupertrendDir === 1 &&
-			supertrendDir === -1
-		) {
-			console.info("Stoploss Short");
-			placeOrder("BUY");
-			position = "closed";
-			direction = "";
-		}
-		if (direction === "long" && c >= lastAvgPrice! * 1.005) {
-			console.info("Profit Long");
-			placeOrder("SELL");
-			position = "closed";
-			direction = "";
-		}
-		if (direction === "short" && c <= lastAvgPrice! * 0.995) {
-			console.info("Profit Short");
-			placeOrder("BUY");
-			position = "closed";
-			direction = "";
-		}
+	switch (position) {
+		case "closed":
+			if (
+				direction !== "long" &&
+				c > e &&
+				prevSupertrendDir === 1 &&
+				supertrendDir === -1
+			) {
+				console.info("Open Long");
+				placeOrder("BUY");
+				position = "opened";
+				direction = "long";
+			}
+			if (
+				direction !== "short" &&
+				c < e &&
+				prevSupertrendDir === -1 &&
+				supertrendDir === 1
+			) {
+				console.info("Open Short");
+				placeOrder("SELL");
+				position = "opened";
+				direction = "short";
+			}
+			break;
+		case "opened":
+			if (
+				direction === "long" &&
+				c < e &&
+				prevSupertrendDir === -1 &&
+				supertrendDir === 1
+			) {
+				console.info("Stoploss Long");
+				placeOrder("SELL");
+				position = "closed";
+				direction = "";
+			}
+			if (
+				direction === "short" &&
+				c > e &&
+				prevSupertrendDir === 1 &&
+				supertrendDir === -1
+			) {
+				console.info("Stoploss Short");
+				placeOrder("BUY");
+				position = "closed";
+				direction = "";
+			}
+			if (direction === "long" && c >= lastAvgPrice! * 1.005) {
+				console.info("Profit Long");
+				placeOrder("SELL");
+				position = "closed";
+				direction = "";
+			}
+			if (direction === "short" && c <= lastAvgPrice! * 0.995) {
+				console.info("Profit Short");
+				placeOrder("BUY");
+				position = "closed";
+				direction = "";
+			}
 	}
 
 	prevSupertrendDir = supertrendDir;
@@ -132,7 +132,12 @@ async function placeOrder(position: OrderSide_LT) {
 			quantity: PROP.balance.toString(),
 			type: "MARKET",
 		});
-		lastAvgPrice = Number(order.avgPrice);
+		const lastOrder = await client.futuresGetOrder({
+			symbol: PROP.pair,
+			orderId: order.orderId,
+		});
+		lastAvgPrice = Number(lastOrder.avgPrice);
+		console.info("lastAvgPrice", lastAvgPrice);
 		return console.info(order);
 	} else {
 		return console.error("Low balance");
