@@ -47,7 +47,7 @@ let position: "opened" | "closed" = "closed";
 let direction: "short" | "long" | "" = "";
 let supertrendDir: number | undefined = undefined;
 let prevSupertrendDir: number | undefined = undefined;
-let lastAvgPrice: number = 0;
+let lastAvgPrice: number | undefined = undefined;
 // run every candle
 const Main = (h: number, l: number, c: number) => {
 	const st = supertrend.nextValue(h, l, c);
@@ -90,7 +90,7 @@ const Main = (h: number, l: number, c: number) => {
 			prevSupertrendDir === -1 &&
 			supertrendDir === 1
 		) {
-			console.info("Close Long");
+			console.info("Stoploss Long");
 			placeOrder("SELL");
 			position = "closed";
 			direction = "";
@@ -101,19 +101,19 @@ const Main = (h: number, l: number, c: number) => {
 			prevSupertrendDir === 1 &&
 			supertrendDir === -1
 		) {
-			console.info("Close Short");
+			console.info("Stoploss Short");
 			placeOrder("BUY");
 			position = "closed";
 			direction = "";
 		}
-		if (direction === "long" && c >= lastAvgPrice * 1.005) {
-			console.info("Close Long");
+		if (direction === "long" && c >= lastAvgPrice! * 1.005) {
+			console.info("Profit Long");
 			placeOrder("SELL");
 			position = "closed";
 			direction = "";
 		}
-		if (direction === "short" && c <= lastAvgPrice * 0.995) {
-			console.info("Close Short");
+		if (direction === "short" && c <= lastAvgPrice! * 0.995) {
+			console.info("Profit Short");
 			placeOrder("BUY");
 			position = "closed";
 			direction = "";
