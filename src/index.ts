@@ -6,6 +6,22 @@ import { SuperTrend, EMA } from "@debut/indicators";
 const supertrend = new SuperTrend(ST.PERIOD, ST.MULTIPLIER);
 const ema = new EMA(E.PERIOD);
 
+// leverage config setup
+client.futuresLeverage({
+	symbol: PROP.pair,
+	leverage: PROP.leverage,
+});
+
+// strategy variables
+let position: "opened" | "closed" = "closed";
+let direction: "short" | "long" | "" = "";
+let supertrendDir: number | undefined = undefined;
+let prevSupertrendDir: number | undefined = undefined;
+let lastAvgPrice: number | undefined = undefined;
+let closeValue: number | undefined = undefined;
+let stDirValue: number | undefined = undefined;
+let emaValue: number | undefined = undefined;
+
 // set previous candles on indicators
 (async () => {
 	console.info("reading previous candles");
@@ -21,7 +37,7 @@ const ema = new EMA(E.PERIOD);
 			Number(close)
 		);
 		ema.nextValue(Number(close));
-		if (i === pastCandles.length - 1) prevSupertrendDir = st.direction;
+		if (i === pastCandles.length - 1) supertrendDir = st.direction;
 	}
 	console.info("past candles set");
 	// start to hear future candles
@@ -30,97 +46,89 @@ const ema = new EMA(E.PERIOD);
 		let { high, low, close, isFinal } = candle;
 		// trigger when candle close
 		if (isFinal) {
-			Main(Number(high), Number(low), Number(close));
+			prevSupertrendDir = supertrendDir;
+			strategy(Number(high), Number(low), Number(close));
+		}
+		switch (position) {
+			case "closed":
+				if (
+					direction !== "long" &&
+					closeValue! > emaValue! &&
+					prevSupertrendDir === 1 &&
+					supertrendDir === -1
+				) {
+					position = "opened";
+					direction = "long";
+					console.info("Open Long");
+					placeOrder("BUY");
+				}
+				if (
+					direction !== "short" &&
+					closeValue! < emaValue! &&
+					prevSupertrendDir === -1 &&
+					supertrendDir === 1
+				) {
+					position = "opened";
+					direction = "short";
+					console.info("Open Short");
+					placeOrder("SELL");
+				}
+				break;
+			case "opened":
+				switch (direction) {
+					case "long":
+						if (
+							closeValue! < emaValue! &&
+							prevSupertrendDir === -1 &&
+							supertrendDir === 1
+						) {
+							position = "closed";
+							direction = "";
+							console.info("Stoploss Long");
+							placeOrder("SELL");
+						}
+						if (Number(close) >= lastAvgPrice! * 1.005) {
+							position = "closed";
+							direction = "";
+							console.info("Profit Long");
+							placeOrder("SELL");
+						}
+						break;
+					case "short":
+						if (
+							closeValue! > emaValue! &&
+							prevSupertrendDir === 1 &&
+							supertrendDir === -1
+						) {
+							position = "closed";
+							direction = "";
+							console.info("Stoploss Short");
+							placeOrder("BUY");
+						}
+						if (Number(close) <= lastAvgPrice! * 0.995) {
+							position = "closed";
+							direction = "";
+							console.info("Profit Short");
+							placeOrder("BUY");
+						}
+						break;
+				}
 		}
 	});
 })();
 
-// leverage config setup
-client.futuresLeverage({
-	symbol: PROP.pair,
-	leverage: PROP.leverage,
-});
-
-// hear for websocket binance
-
-let position: "opened" | "closed" = "closed";
-let direction: "short" | "long" | "" = "";
-let supertrendDir: number | undefined = undefined;
-let prevSupertrendDir: number | undefined = undefined;
-let lastAvgPrice: number | undefined = undefined;
 // run every candle
-const Main = (h: number, l: number, c: number) => {
-	const st = supertrend.nextValue(h, l, c);
-	const e = ema.nextValue(c);
-	supertrendDir = st ? st.direction : undefined;
+const strategy = (h: number, l: number, c: number) => {
+	const stValue = supertrend.nextValue(h, l, c);
+	stDirValue = stValue.direction;
+	emaValue = Number(ema.nextValue(c));
+	closeValue = c;
+	supertrendDir = stDirValue ? stDirValue : undefined;
 	console.info("position", position);
 	console.info("direction", direction);
-	console.info("supertrend", st);
-	console.info("ema", e);
+	console.info("supertrend", stDirValue);
+	console.info("ema", emaValue);
 	console.info("close", c);
-	switch (position) {
-		case "closed":
-			if (
-				direction !== "long" &&
-				c > e &&
-				prevSupertrendDir === 1 &&
-				supertrendDir === -1
-			) {
-				console.info("Open Long");
-				placeOrder("BUY");
-				position = "opened";
-				direction = "long";
-			}
-			if (
-				direction !== "short" &&
-				c < e &&
-				prevSupertrendDir === -1 &&
-				supertrendDir === 1
-			) {
-				console.info("Open Short");
-				placeOrder("SELL");
-				position = "opened";
-				direction = "short";
-			}
-			break;
-		case "opened":
-			if (
-				direction === "long" &&
-				c < e &&
-				prevSupertrendDir === -1 &&
-				supertrendDir === 1
-			) {
-				console.info("Stoploss Long");
-				placeOrder("SELL");
-				position = "closed";
-				direction = "";
-			}
-			if (
-				direction === "short" &&
-				c > e &&
-				prevSupertrendDir === 1 &&
-				supertrendDir === -1
-			) {
-				console.info("Stoploss Short");
-				placeOrder("BUY");
-				position = "closed";
-				direction = "";
-			}
-			if (direction === "long" && c >= lastAvgPrice! * 1.005) {
-				console.info("Profit Long");
-				placeOrder("SELL");
-				position = "closed";
-				direction = "";
-			}
-			if (direction === "short" && c <= lastAvgPrice! * 0.995) {
-				console.info("Profit Short");
-				placeOrder("BUY");
-				position = "closed";
-				direction = "";
-			}
-	}
-
-	prevSupertrendDir = supertrendDir;
 };
 
 // place order
@@ -137,7 +145,6 @@ async function placeOrder(position: OrderSide_LT) {
 			orderId: order.orderId,
 		});
 		lastAvgPrice = Number(lastOrder.avgPrice);
-		console.info("lastAvgPrice", lastAvgPrice);
 		return console.info(order);
 	} else {
 		return console.error("Low balance");
